@@ -49,11 +49,11 @@ public class CreateReceiptRequestTest {
 
         receipt.amount = new BigDecimal(-4.00);
         if (receipt.amount.signum() > 0){
-            assertThat(validator.validate(receipt), empty());
+            assertThat(validator.validate(receipt), hasSize(1));
 
         }
         else{
-            assertThat(validator.validate(receipt), hasSize(1));
+            assertThat(validator.validate(receipt), empty());
         }
         
     }
