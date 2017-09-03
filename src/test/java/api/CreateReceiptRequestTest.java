@@ -42,7 +42,7 @@ public class CreateReceiptRequestTest {
         assertThat(validator.validate(receipt), hasSize(1));
     }
 
-    /*@Test
+    @Test
     public void testConflicts() {
         CreateReceiptRequest receipt = new CreateReceiptRequest();
         receipt.merchant = "OK";
@@ -56,5 +56,5 @@ public class CreateReceiptRequestTest {
             assertThat(validator.validate(receipt), empty());
         }
         
-    }*/
+    }
 }
