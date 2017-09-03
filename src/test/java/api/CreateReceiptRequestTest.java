@@ -47,7 +47,14 @@ public class CreateReceiptRequestTest {
         CreateReceiptRequest receipt = new CreateReceiptRequest();
         receipt.merchant = "OK";
 
-        receipt.amount = new Integer(4);
-        assertThat(validator.validate(receipt), empty());
+        receipt.amount = new BigDecimal(-4.00);
+        if (receipt.amount.signum() > 0){
+            assertThat(validator.validate(receipt), empty());
+
+        }
+        else{
+            assertThat(validator.validate(receipt), hasSize(1));
+        }
+        
     }
 }
