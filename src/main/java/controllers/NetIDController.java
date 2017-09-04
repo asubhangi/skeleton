@@ -20,4 +20,9 @@ public class NetIDController {
     public String netID() {
         return "sa2265";
     }
+
+    @GET
+    public String getNetIdDefault() {
+        return "sa2265";
+    }
 }
