@@ -4,8 +4,26 @@
 <head>
     <script data-require="jquery@*" data-semver="3.1.1" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <style>
-        #container {border: 1px solid brown;}
-        H1 {float: left;}
+        
+        H1 {
+
+            float:left;
+            position: absolute;
+            height:50px;
+        }
+        #add-receipt {
+            display: inline-block;
+            background-color: #6699ff;
+            width: 100px;
+            font-size: 2em;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 2px;
+            float:right;
+            margin-top: 10px; 
+            
+        }
         .button{
             background-color:#55A;
             border: 1px solid #229;
@@ -16,12 +34,113 @@
             text-align: center;
         }
         #receiptList {
-            border: 1px solid green;
-            clear: both;
+            position: absolute;
+            top:100px;
+            width: 100%;
         }
         .receipt {
-            background-color: #eee;
+            background-color: white;
+            width: 100%;
+        }
+
+        .receiptTableHead {
+            background-color: white;
+            width: 100%;
+        }
+
+        .receipt span {
+            width: 300px;
+            display: inline-block;
+            text-align: center;
+            padding: 6px;
+            margin: -1px;
+        }
+
+        .receiptTableHead span {
+            width: 300px;
+            font-weight: bold;
+            display: inline-block;
+            text-align: center;
+            padding: 6px;
+            margin: -1px;
+        }
+
+        .receiptTag {
+            width: 2px;
+            display: inline-block;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        #receipt-form {
+            position: absolute;
+            top:60px;
+            width: 100%;
+            background: white;
+            display: none;
+        }
+        #receipt-form input {
+            width: 88%;
+            
+            border: 1px solid black;
+            color: white;
+            padding-left: 10px;
+            font-size: 20px;
+            height: 30px;
+        }
+        ::-webkit-input-placeholder {
+            color: white;
+            font-size: 20px;
+        }
+        
+        #cancel-receipt {
+            display: inline-block;
+            background-color: #002266;
+            border: 1px solid #002266;
+            font-size: -1em;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 2px;
+            width:80px;
+        }
+        #save-receipt {
+            display: inline-block;
+            background-color: #002266;
+            border: 1px solid #002266;
+            font-size: -1em;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 2px;
+            width:80px;
+        }
+        .tagValue {
+            background-color: #002266;
+            border: 1px solid black;
+            width: 100px;
+            color:white;
+            text-align: center;
+            border-radius: 50px;
+            cursor: pointer;
             margin-bottom: 5px;
+        }
+        .add-tag {
+            background-color: #6699ff;
+            border: 1px solid black;
+            width: 100px;
+            color: white;
+            text-align: center;
+            border-radius: 50px;
+            cursor: pointer;
+        }
+        .tag_input {
+            width: 150px;
+            background: inherit;
+            border: 1px solid black;
+            margin-left: 8px;
+            margin-bottom: 5px;
+            margin-top: 5px;
         }
 
     </style>
@@ -37,7 +156,7 @@
             }
         }
 
-        const api = "http://ec2-54-209-250-89.compute-1.amazonaws.com:8080"; // <- do not need a root api URL if this page is served directly by the API
+        const api = ""//"http://ec2-54-209-250-89.compute-1.amazonaws.com:8080"; // <- do not need a root api URL if this page is served directly by the API
         const x = " x";
 
         $(function(){
@@ -49,12 +168,18 @@
                     updateReceipt(receipt);
                 }
             })
+
+            $(`<div class="receiptTableHead"><span>Time</span><span>Merchant</span><span>$</span><span>Tags</span></span>`)
+                .appendTo($("#receiptList"));
         });
 
 
         function updateReceipt(receipt){
             
-                    var currentTime = new Date().getTime();
+                    
+                    var date = new Date(1970, 0, 1);
+                    date.setSeconds(receipt.time); // specify value for SECONDS here
+                    var result = date.toISOString().substr(11, 8);
                     var tagList = [];
                     if(receipt.tags){
                         console.log("Has Tags");
@@ -64,8 +189,8 @@
                             for(var i=0; i < tagLength; i++) {
                                 var tagId = randomTagId();
                                 console.log(receipt.tags[i]);
-                                tagList += `<div id="${tagId}" class="tagValue" onclick="removeTag(${receipt.id},${tagId});" value="${receipt.tags[i].slice(1,-1)}">${receipt.tags[i].slice(1,-1)}${x}
-                            </div>`;
+                                tagList += `<span id="${tagId}" class="tagValue" onclick="removeTag(${receipt.id},${tagId});" value="${receipt.tags[i].slice(1,-1)}" style="width:200px;">${receipt.tags[i].slice(1,-1)}${x}
+                            </span>`;
 
                             }
                             console.log(tagList);
@@ -74,11 +199,11 @@
 
                     var addId = randomTagId();
                     $(`<div class="receipt" id=${receipt.id}>
-                        <div class="created">${currentTime} - ${receipt.time}.getTime()</div>
-                        <div class="merchant">${receipt.merchant}</div>
-                        <div class="amount">${receipt.amount}</div>
-                        <div class="receiptTag">${tagList}<div id=${addId} class ="add-tag" onclick="addTags(${receipt.id},${addId});">Add +
-                        </div></div>`)
+                        <span class="created">${result}</span>
+                        <span class="merchant">${receipt.merchant}</span>
+                        <span class="amount">${receipt.amount}</span>
+                        <span class="receiptTag" style="width:2px;">${tagList}<span id=${addId} class ="add-tag" onclick="addTags(${receipt.id},${addId});" style="width:200px;">Add +
+                        </span></span>`)
                         .appendTo($("#receiptList"));
 
         }
@@ -161,7 +286,7 @@
                                         var tagName= input.val();
                                         console.log("randomTagId "+tagId);
                                         console.log(input.val());
-                                        var newTag = $(`<div class="tagValue" onclick="removeTag(${id},${tagId});" id = "${tagId}" value="${tagName}">${tagName}${x}</div>`);
+                                        var newTag = $(`<span class="tagValue" onclick="removeTag(${id},${tagId});" id = "${tagId}" value="${tagName}" style="width:200px;">${tagName}${x}</span>`);
                                         console.log("Inserting Button");
                                         newTag.insertBefore(input);
                                         input.remove();
@@ -230,8 +355,8 @@
 
 <body>
 <DIV id="container">
-    <h1>My receipts</h1>
-    <div id="add-receipt" onclick="loadReceiptForm()">Add Receipt</div>
+    <h1>My Receipts</h1>
+    <div id="add-receipt" onclick="loadReceiptForm()">+</div>
     <div class="receiptForm" id="receiptForm">
         <input type = "text" placeholder="merchant" id="merchant">
         <input type = "text" placeholder="amount" id="amount">
