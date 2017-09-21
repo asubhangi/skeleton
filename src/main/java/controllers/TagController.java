@@ -2,10 +2,13 @@ package controllers;
 
 import api.CreateReceiptRequest;
 import api.ReceiptResponse;
+import api.TagResponse;
 import dao.ReceiptDao;
 import dao.TagDao;
 import controllers.ReceiptController;
 import generated.tables.records.ReceiptsRecord;
+import generated.tables.records.TagsRecord;
+import resource.ReceiptResource;
 
 
 import javax.validation.Valid;
@@ -14,6 +17,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.List;
+import java.util.ArrayList;
 import org.jooq.Result;
 import org.jooq.Record;
 
@@ -30,7 +34,6 @@ public class TagController {
         this.receipts = receipts;
         this.tags = tags;
     }
-
 
     @PUT
     public Response toggleTag(@PathParam("tag") String tagName, Integer receiptId) {
@@ -57,8 +60,25 @@ public class TagController {
     }
 
     @GET
-    public List<ReceiptResponse> getReceipts(@PathParam("tag") String tagName) {
+    public List<ReceiptResource> getReceipts(@PathParam("tag") String tagName) {
+        List<ReceiptResource> resources = new ArrayList<>();
         List<ReceiptsRecord> receiptsRecords = receipts.getReceiptsForTag(tagName);
-        return receiptsRecords.stream().map(ReceiptResponse::new).collect(toList());
+        for (ReceiptsRecord receiptsRecord : receiptsRecords) {
+            List<String> tagsList = tags.getTags(receiptsRecord.getId());
+            resources.add(ReceiptResource.create(receiptsRecord, tagsList));
+        }
+        return resources;
+
+        /*List<ReceiptsRecord> receiptsRecords = receipts.getReceiptsForTag(tagName);
+        return receiptsRecords.stream().map(ReceiptResponse::new).collect(toList());*/
     }
+
+
+    
+    /*@Path("/receipts")
+    @PUT
+    public List<String> getTags(Integer receiptId) {
+        List<String> tagsNames = tags.getTags(receiptId);
+        return tagsNames; //.stream().map(String::new).collect(toList())
+    }*/
 }

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script data-require="jquery@*" data-semver="3.1.1" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <style>
+        #container {border: 1px solid brown;}
+        H1 {float: left;}
+        .button{
+            background-color:#55A;
+            border: 1px solid #229;
+            width: 100px;
+            float: right;
+            font-size: 2em;
+            color: white;
+            text-align: center;
+        }
+        #receiptList {
+            border: 1px solid green;
+            clear: both;
+        }
+        .receipt {
+            background-color: #eee;
+            margin-bottom: 5px;
+        }
+
+    </style>
+    <script>
+        // This is the idiomatic way to ensure that JQuery does not
+        // execute until the page has loaded
+        function toggleReceiptForm() {
+            var ele = document.getElementById('receiptForm');
+            if (ele.style.display === 'none') {
+                ele.style.display = 'block';
+            } else {
+                ele.style.display = 'none';
+            }
+        }
+
+        const api = "http://ec2-54-209-250-89.compute-1.amazonaws.com:8080"; // <- do not need a root api URL if this page is served directly by the API
+        const x = " x";
+
+        $(function(){
+            toggleReceiptForm();
+            
+            $.getJSON(api+"/receipts", function(receipts){
+                for(var i=0; i < receipts.length; i++) {
+                    var receipt = receipts[i];
+                    updateReceipt(receipt);
+                }
+            })
+        });
+
+
+        function updateReceipt(receipt){
+            
+                    var currentTime = new Date().getTime();
+                    var tagList = [];
+                    if(receipt.tags){
+                        console.log("Has Tags");
+                        if (receipt.tags.length>0) {
+                            console.log("# of Tags: "+receipt.tags.length)
+                            var tagLength = receipt.tags.length;
+                            for(var i=0; i < tagLength; i++) {
+                                var tagId = randomTagId();
+                                console.log(receipt.tags[i]);
+                                tagList += `<div id="${tagId}" class="newTag" onclick="removeTag(${receipt.id},${tagId});" value="${receipt.tags[i].slice(1,-1)}">${receipt.tags[i].slice(1,-1)}${x}
+                            </div>`;
+
+                            }
+                            console.log(tagList);
+                        }
+                    }
+
+                    var addId = randomTagId();
+                    $(`<div class="receipt" id=${receipt.id}>
+                        <div class="created">${currentTime} - ${receipt.time}.getTime()</div>
+                        <div class="merchant">${receipt.merchant}</div>
+                        <div class="amount">${receipt.amount}</div>
+                        <div class="receiptTag">${tagList}<div id=${addId} class ="addTag" onclick="addTags(${receipt.id},${addId});">Add +
+                        </div></div>`)
+                        .appendTo($("#receiptList"));
+
+        }
+        
+        function removeTag(id,tagId) {
+            console.log("removing tags on second click");
+            console.log(tagId);
+            var tagName = $(tagId).attr('value');
+            console.log("id:"+id+",tag:"+tagName);
+            $.ajax({
+                        type: 'PUT',
+                        url: api + "/tags/{"+tagName+"}",
+                        contentType: 'application/json',
+                        data: JSON.stringify(id),
+                        success: function(result){
+                            console.log("Successfully removed tag");
+                            tagId.remove();
+
+                        },
+                        error: function (jqXhr, textStatus, errorThrown) {
+                            console.log(errorThrown);
+                        }
+                    });
+        }
+
+        function removeTagOnDuplicateEntry(id,previous){
+            console.log("removing tags on duplicate entry");
+            tagId = previous.id;
+            tagName = $.trim(previous.textContent).slice(0,-2);
+            console.log("id:"+id+",tag:"+tagName);
+            console.log("" + "/tags/{"+tagName+"}");
+            $.ajax({
+                        type: 'PUT',
+                        url: api + "/tags/{"+tagName+"}",
+                        contentType: 'application/json',
+                        data: JSON.stringify(id),
+                        success: function(result){
+                            console.log("Successfully removed duplicate tag");
+                            previous.remove();
+
+                        },
+                        error: function (jqXhr, textStatus, errorThrown) {
+                            console.log(errorThrown);
+                        }
+                    });
+        }
+
+        function addTags(id,addId){
+                console.log("in add tags");
+                var addTagId = $(addId).attr('id');
+                console.log(id+" addId: "+addTagId);
+                var duplicate = false;
+                var input = $(`<input type='text' class="newTag">`);
+                input.insertBefore($('#'+addTagId));
+                input.keypress(function(key) {
+                    if (key.which === 13){
+                        duplicate = false;
+                        console.log("# of siblings:" +input.siblings().length);
+                        for (var j = 0; j < input.siblings().length; j++) {
+                                var previous = input.siblings()[j];
+                                var previousName = $.trim(previous.textContent);
+                                console.log("sibling trimmed name:"+ previousName + previousName.length);
+                                if (input.val() === previousName.slice(0,-2)){
+                                    console.log("duplicate is true");
+                                    duplicate = true;
+                                    input.remove();
+                                    removeTagOnDuplicateEntry(id,previous);
+                                }
+                            }
+                            if (!duplicate){
+                                $.ajax({
+                                    type: 'PUT',
+                                    url: api + "/tags/{"+input.val()+"}",
+                                    contentType: 'application/json',
+                                    data: JSON.stringify(id),
+                                    success: function(result){
+                                        console.log(result);
+                                        console.log("Tag added to receipt");
+                                        var tagId = randomTagId();
+                                        var tagName= input.val();
+                                        console.log("randomTagId "+tagId);
+                                        console.log(input.val());
+                                        var newTag = $(`<div class="newTag" onclick="removeTag(${id},${tagId});" id = "${tagId}" value="${tagName}">${tagName}${x}</div>`);
+                                        console.log("Inserting Button");
+                                        newTag.insertBefore(input);
+                                        input.remove();
+
+                                    },
+                                    error: function (jqXhr, textStatus, errorThrown) {
+                                        console.log(errorThrown);
+                                    }
+                                });
+                            }
+                    }
+                });
+
+               }
+
+            
+        
+
+        function randomTagId(){
+            return "a" +Math.random().toString(36).substr(2,10);
+        }
+
+
+        function saveReceipt(){
+            console.log("save clicked");
+            var data = {
+                    merchant: $('#merchant').val(),
+                    amount: $('#amount').val()
+                };
+                $.ajax({
+                    url: api + "/receipts",
+                    dataType: 'json',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function (receipt) {
+                        console.log('saving receipts');
+                        console.log(receipt);
+                        updateReceipt(receipt);
+                        $('#merchant').val('');
+                        $('#amount').val('');
+                        $('#receiptForm').hide();
+                    },
+                    error: function (jqXhr, textStatus, errorThrown) {
+                        console.log(data);
+                        console.log(errorThrown);
+                    }
+                });
+
+        }
+
+        function cancelReceipt(){
+            $("#receiptForm").hide();
+        }
+
+        function loadReceiptForm(){
+            $("#receiptForm").show();
+        }
+        
+
+        
+         
+
+    </script>
+</head>
+
+<body>
+<DIV id="container">
+    <h1>My receipts</h1>
+    <div id="add-receipt" onclick="loadReceiptForm()">Add Receipt</div>
+    <div class="receiptForm" id="receiptForm">
+        <input type = "text" value="merchant" id="merchant">
+        <input type = "text" value="amount" id="amount">
+        <button value="save" onclick="saveReceipt()">Save</button>
+        <button value="cancel" onclick="cancelReceipt()">Cancel</button>
+    </div>
+    <div id="receiptList">
+    </div>
+</DIV>
+</body>
+
+</html>

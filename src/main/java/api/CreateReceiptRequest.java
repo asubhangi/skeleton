@@ -3,6 +3,8 @@ package api;
 import org.hibernate.validator.constraints.NotEmpty;
 
 import java.math.BigDecimal;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
 
 /**
  * This is an API Object.  It's job is to model and document the JSON API that we expose
@@ -16,5 +18,7 @@ public class CreateReceiptRequest {
     @NotEmpty
     public String merchant;
 
+    @NotNull
+    @Min(0)
     public BigDecimal amount;
 }

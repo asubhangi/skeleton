@@ -12,6 +12,7 @@ import org.jooq.Record3;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.sql.Timestamp;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -25,16 +26,26 @@ public class ReceiptDao {
         this.dsl = DSL.using(jooqConfig);
     }
 
-    public int insert(String merchantName, BigDecimal amount) {
+    public ReceiptsRecord insert(String merchantName, BigDecimal amount) {
+        return addReceipt(merchantName, amount);
+        
+    }
+
+    private ReceiptsRecord addReceipt(String merchantName, BigDecimal amount) {
         ReceiptsRecord receiptsRecord = dsl
                 .insertInto(RECEIPTS, RECEIPTS.MERCHANT, RECEIPTS.AMOUNT)
                 .values(merchantName, amount)
-                .returning(RECEIPTS.ID)
+                .returning()
                 .fetchOne();
+
+                /*.insertInto(RECEIPTS, RECEIPTS.MERCHANT, RECEIPTS.AMOUNT, RECEIPTS.UPLOADED)
+                .values(merchantName, amount, new Timestamp(System.currentTimeMillis()))
+                .returning()
+                .fetchOne();*/
 
         checkState(receiptsRecord != null && receiptsRecord.getId() != null, "Insert failed");
 
-        return receiptsRecord.getId();
+        return receiptsRecord;
     }
 
     public List<ReceiptsRecord> getAllReceipts() {
@@ -63,6 +74,7 @@ public class ReceiptDao {
         }
     }
 
+
     public List<ReceiptsRecord> getReceiptsForTag(String tagName) {
         Result<Record3<Integer, String, BigDecimal>> result = dsl.select(RECEIPTS.ID, RECEIPTS.MERCHANT, RECEIPTS.AMOUNT).from(RECEIPTS)
                 .innerJoin(TAGS).on(RECEIPTS.ID.eq(TAGS.ID))
@@ -80,5 +92,35 @@ public class ReceiptDao {
         }
 
         return receiptsRecords;
+    }
+    
+
+    public ReceiptsRecord getReceipt(Integer id) {
+        ReceiptsRecord receipt = null;
+        if (id != null) {
+            receipt = dsl
+                    .selectFrom(RECEIPTS)
+                    .where(RECEIPTS.ID.eq(id))
+                    .fetchOne();
+        }
+        return receipt;
+    }
+
+    public List<String> getTags(Integer receiptId) {
+        List<String> tags = null;
+        if (receiptId != null) {
+            List<Integer> tagIds = null;
+            tagIds = dsl
+                    .selectFrom(TAGS)
+                    .where(TAGS.ID.eq(receiptId))
+                    .fetch(TAGS.PID);
+            if (tagIds != null && !tagIds.isEmpty()) {
+                tags = dsl
+                        .selectFrom(TAGS)
+                        .where(TAGS.ID.in(tagIds))
+                        .fetch(TAGS.NAME);
+            }
+        }
+        return tags;
     }
 }

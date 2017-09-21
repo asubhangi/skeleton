@@ -38,4 +38,11 @@ public class TagDao {
                 .where(TAGS.NAME.eq(tagName))
                 .fetch(TAGS.ID);
     }
+
+    public List<String> getTags(Integer receiptId) {
+        return dsl.selectFrom(TAGS)
+                .where(TAGS.ID.eq(receiptId))
+                .fetch(TAGS.NAME);
+    }
+
 }
