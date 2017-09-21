@@ -64,7 +64,7 @@
                             for(var i=0; i < tagLength; i++) {
                                 var tagId = randomTagId();
                                 console.log(receipt.tags[i]);
-                                tagList += `<div id="${tagId}" class="newTag" onclick="removeTag(${receipt.id},${tagId});" value="${receipt.tags[i].slice(1,-1)}">${receipt.tags[i].slice(1,-1)}${x}
+                                tagList += `<div id="${tagId}" class="tagValue" onclick="removeTag(${receipt.id},${tagId});" value="${receipt.tags[i].slice(1,-1)}">${receipt.tags[i].slice(1,-1)}${x}
                             </div>`;
 
                             }
@@ -77,7 +77,7 @@
                         <div class="created">${currentTime} - ${receipt.time}.getTime()</div>
                         <div class="merchant">${receipt.merchant}</div>
                         <div class="amount">${receipt.amount}</div>
-                        <div class="receiptTag">${tagList}<div id=${addId} class ="addTag" onclick="addTags(${receipt.id},${addId});">Add +
+                        <div class="receiptTag">${tagList}<div id=${addId} class ="add-tag" onclick="addTags(${receipt.id},${addId});">Add +
                         </div></div>`)
                         .appendTo($("#receiptList"));
 
@@ -131,7 +131,7 @@
                 var addTagId = $(addId).attr('id');
                 console.log(id+" addId: "+addTagId);
                 var duplicate = false;
-                var input = $(`<input type='text' class="newTag">`);
+                var input = $(`<input type='text' class="tag_input">`);
                 input.insertBefore($('#'+addTagId));
                 input.keypress(function(key) {
                     if (key.which === 13){
@@ -161,7 +161,7 @@
                                         var tagName= input.val();
                                         console.log("randomTagId "+tagId);
                                         console.log(input.val());
-                                        var newTag = $(`<div class="newTag" onclick="removeTag(${id},${tagId});" id = "${tagId}" value="${tagName}">${tagName}${x}</div>`);
+                                        var newTag = $(`<div class="tagValue" onclick="removeTag(${id},${tagId});" id = "${tagId}" value="${tagName}">${tagName}${x}</div>`);
                                         console.log("Inserting Button");
                                         newTag.insertBefore(input);
                                         input.remove();
@@ -233,10 +233,10 @@
     <h1>My receipts</h1>
     <div id="add-receipt" onclick="loadReceiptForm()">Add Receipt</div>
     <div class="receiptForm" id="receiptForm">
-        <input type = "text" value="merchant" id="merchant">
-        <input type = "text" value="amount" id="amount">
-        <button value="save" onclick="saveReceipt()">Save</button>
-        <button value="cancel" onclick="cancelReceipt()">Cancel</button>
+        <input type = "text" placeholder="merchant" id="merchant">
+        <input type = "text" placeholder="amount" id="amount">
+        <div id="cancel-receipt" onclick="cancelReceipt()">Cancel</div>
+        <div id="save-receipt" onclick="saveReceipt()">Save</div>
     </div>
     <div id="receiptList">
     </div>
