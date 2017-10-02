@@ -156,11 +156,22 @@
             }
         }
 
+        function togglePicture() {
+            var ele = document.getElementById('picture');
+            if (ele.style.display === 'none') {
+                ele.style.display = 'block';
+            } else {
+                ele.style.display = 'none';
+            }
+        }
+
         const api = ""//"http://ec2-54-209-250-89.compute-1.amazonaws.com:8080"; // <- do not need a root api URL if this page is served directly by the API
         const x = " x";
+        var imageCapture;
 
         $(function(){
             toggleReceiptForm();
+            togglePicture();
             
             $.getJSON(api+"/receipts", function(receipts){
                 for(var i=0; i < receipts.length; i++) {
@@ -345,8 +356,89 @@
         function loadReceiptForm(){
             $("#receiptForm").show();
         }
-        
 
+        function toggleFields(ele){
+            if (ele.disabled == true){
+                ele.prop('disabled',false);
+                console.log("False");
+            }
+            if (ele.disabled == false){
+                ele.prop('disabled',true);
+            }
+        }
+
+        function savePic(){
+            imageCapture.grabFrame()
+                    .then(blob => createImageBitmap(blob))
+                    .then(bitmapImage => {
+                        var canvas = document.createElement('canvas');
+                        canvas.width = bitmapImage.width;
+                        canvas.height = bitmapImage.height;
+                        canvas.getContext('2d').drawImage(bitmapImage, 0, 0);
+                        dataToSend = canvas.toDataURL('image/png');
+                        var merchant = $('#merchant');
+                        var amount = $('#amount');
+                        loadReceiptForm();
+                        console.log("True");
+                        toggleFields(merchant);
+                        toggleFields(amount);
+                        //merchantField.prop('disabled', true);
+                        //amountField.prop('disabled', true);
+                        $.ajax({
+                            url: api+'/images',
+                            dataType: 'json',
+                            type: 'POST',
+                            contentType: 'text/plain',
+                            data: dataToSend,
+                            success: function (receipt) {
+                                console.log("Adding receipt from image");
+                                //merchantField.prop('disabled', false);
+                                toggleFields(merchant);
+                                merchant.val(receipt.merchantName);
+                                //amountField.prop('disabled', false);
+                                toggleFields(amount);
+                                amount.val(receipt.amount);
+                            },
+                            error: function (jqXhr, textStatus, errorThrown) {
+                                console.log(errorThrown);
+                                toggleFields(merchant);
+                                toggleFields(amount);
+                                //merchantField.prop('disabled', false);
+                                //amountField.prop('disabled', false);
+                            }
+                        });
+                    });
+
+        }
+        
+        function cancelPic(){
+            $("#picture").hide();
+            destroyCameraFeed();
+        }
+
+        function loadPicture(){
+            $("#picture").show();
+            cameraStart();
+        }
+
+        function cameraStart(){
+            // To get rear camera
+            // facingMode: "user" - for front camera
+            var constraints = { audio: false, video: { facingMode: { exact: "environment" } } 
+            navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+                $('video')[0].srcObject = stream;
+                const track = stream.getVideoTracks()[0];
+                imageCapture = new ImageCapture(track);
+            }).catch(function(err) {
+                console.log("Unable to load video: "+ err.message)
+            });
+        }
+
+        function destroyCameraFeed(){
+            $('video')[0].srcObject = null;
+            imageCapture = null;
+        }
+        
         
          
 
@@ -357,11 +449,17 @@
 <DIV id="container">
     <h1>My Receipts</h1>
     <div id="add-receipt" onclick="loadReceiptForm()">+</div>
+    <div id="start-camera" onclick="loadPicture()">camera</div>
     <div class="receiptForm" id="receiptForm">
         <input type = "text" placeholder="merchant" id="merchant">
         <input type = "text" placeholder="amount" id="amount">
         <div id="cancel-receipt" onclick="cancelReceipt()">Cancel</div>
         <div id="save-receipt" onclick="saveReceipt()">Save</div>
+    </div>
+    <div class="picture" id="picture">
+        <div id="videoContainer" class="videoContainer"><video autoplay></video></div>
+        <div id="take-pic-cancel" onclick="cancelPic()">Cancel</div>
+        <div id="take-pic" onclick="savePic()">Snap</div>
     </div>
     <div id="receiptList">
     </div>
