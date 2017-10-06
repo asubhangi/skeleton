@@ -10,6 +10,7 @@
             float:left;
             position: absolute;
             height:50px;
+            top:10px;
         }
         #add-receipt {
             display: inline-block;
@@ -21,9 +22,28 @@
             cursor: pointer;
             border-radius: 2px;
             float:right;
-            margin-top: 10px; 
+            margin-left: 10px;
             
         }
+        #receiptForm{
+            background: #eeeeee;
+            width: fit-content;
+            height: fit-content;
+        }
+
+        #start-camera {
+            display: inline-block;
+            background-color: #6699ff;
+            width: 100px;
+            font-size: 2em;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 2px;
+            float:right;
+            
+        }
+
         .button{
             background-color:#55A;
             border: 1px solid #229;
@@ -79,6 +99,14 @@
             background: white;
             display: none;
         }
+
+        #picture {
+            width: 100%;
+            display: none;
+            z-index: 1000;
+            position: relative;
+        }
+
         #receipt-form input {
             width: 88%;
             
@@ -115,6 +143,30 @@
             border-radius: 2px;
             width:80px;
         }
+
+        #take-pic {
+            display: inline-block;
+            background-color: #002266;
+            border: 1px solid #002266;
+            font-size: -1em;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 2px;
+            width:80px;
+        }
+        #take-pic-cancel {
+            display: inline-block;
+            background-color: #002266;
+            border: 1px solid #002266;
+            font-size: -1em;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 2px;
+            width:80px;
+        }
+
         .tagValue {
             background-color: #002266;
             border: 1px solid black;
@@ -142,6 +194,20 @@
             margin-bottom: 5px;
             margin-top: 5px;
         }
+        video {
+            width: 550px;
+            height: 400px;
+            top:150px;
+        }
+        #vidwrap {
+            margin: 20px 0;
+        }
+
+        #thumbnail {
+            z-index: 20000;
+            position: relative;
+        }
+        
 
     </style>
     <script>
@@ -168,10 +234,15 @@
         const api = ""//"http://ec2-54-209-250-89.compute-1.amazonaws.com:8080"; // <- do not need a root api URL if this page is served directly by the API
         const x = " x";
         var imageCapture;
+        var track;
+        var boundingBox;
+        var thumbnailFinal;
+
 
         $(function(){
             toggleReceiptForm();
             togglePicture();
+            $('video').on('play', () => $('#take-pic').prop('disabled', false));
             
             $.getJSON(api+"/receipts", function(receipts){
                 for(var i=0; i < receipts.length; i++) {
@@ -180,10 +251,10 @@
                 }
             })
 
-            $(`<div class="receiptTableHead"><span>Time</span><span>Merchant</span><span>$</span><span>Tags</span></span>`)
+            $(`<tr class="receiptTableHead"><th>Time</th><th>Merchant</th> <th>$</th><th>Tags</th><th>Thumbnail</th></tr>`)
                 .appendTo($("#receiptList"));
-        });
 
+        });
 
         function updateReceipt(receipt){
             
@@ -200,28 +271,32 @@
                             for(var i=0; i < tagLength; i++) {
                                 var tagId = randomTagId();
                                 console.log(receipt.tags[i]);
-                                tagList += `<span id="${tagId}" class="tagValue" onclick="removeTag(${receipt.id},${tagId});" value="${receipt.tags[i].slice(1,-1)}" style="width:200px;">${receipt.tags[i].slice(1,-1)}${x}
-                            </span>`;
+                                tagList += `<span id="${tagId}" class="tagValue" onclick="removeTag(${receipt.id},${tagId});" value="${receipt.tags[i].slice(1,-1)}" style="width:max-content;">${receipt.tags[i].slice(1,-1)}${x}</span>`;
+                                
 
                             }
                             console.log(tagList);
                         }
                     }
-
+                   
                     var addId = randomTagId();
-                    $(`<div class="receipt" id=${receipt.id}>
-                        <span class="created">${result}</span>
-                        <span class="merchant">${receipt.merchant}</span>
-                        <span class="amount">${receipt.amount}</span>
-                        <span class="receiptTag" style="width:2px;">${tagList}<span id=${addId} class ="add-tag" onclick="addTags(${receipt.id},${addId});" style="width:200px;">Add +
-                        </span></span>`)
+                    $(`<tr class="receipt" id=${receipt.id}>
+                        <td class="created">${result}</td>
+                        <td class="merchant">${receipt.merchant}</td> 
+                        <td class="amount">${receipt.amount}</td>
+                        <td>
+                        <span class="receiptTag" style="width:2px;">${tagList}<span id=${addId} class ="add-tag" onclick="addTags(${receipt.id},${addId});" style="width:max-content;">Add +
+                        </span>
+
+                        </td>
+                        <td> <img src="data:image/png;base64, ${receipt.images}" width="100" height="150"/></td>
+                        </tr>`)
                         .appendTo($("#receiptList"));
+
 
         }
         
         function removeTag(id,tagId) {
-            console.log("removing tags on second click");
-            console.log(tagId);
             var tagName = $(tagId).attr('value');
             console.log("id:"+id+",tag:"+tagName);
             $.ajax({
@@ -230,7 +305,7 @@
                         contentType: 'application/json',
                         data: JSON.stringify(id),
                         success: function(result){
-                            console.log("Successfully removed tag");
+                            console.log("Successfully removed tag: "+tagName);
                             tagId.remove();
 
                         },
@@ -241,18 +316,17 @@
         }
 
         function removeTagOnDuplicateEntry(id,previous){
-            console.log("removing tags on duplicate entry");
+            
             tagId = previous.id;
             tagName = $.trim(previous.textContent).slice(0,-2);
-            console.log("id:"+id+",tag:"+tagName);
-            console.log("" + "/tags/{"+tagName+"}");
+            
             $.ajax({
                         type: 'PUT',
                         url: api + "/tags/{"+tagName+"}",
                         contentType: 'application/json',
                         data: JSON.stringify(id),
                         success: function(result){
-                            console.log("Successfully removed duplicate tag");
+                            console.log("Successfully removed duplicate tag: "+tagName);
                             previous.remove();
 
                         },
@@ -263,7 +337,7 @@
         }
 
         function addTags(id,addId){
-                console.log("in add tags");
+                
                 var addTagId = $(addId).attr('id');
                 console.log(id+" addId: "+addTagId);
                 var duplicate = false;
@@ -276,7 +350,7 @@
                         for (var j = 0; j < input.siblings().length; j++) {
                                 var previous = input.siblings()[j];
                                 var previousName = $.trim(previous.textContent);
-                                console.log("sibling trimmed name:"+ previousName + previousName.length);
+                                console.log("sibling trimmed name: "+ previousName + "and length: " + previousName.length);
                                 if (input.val() === previousName.slice(0,-2)){
                                     console.log("duplicate is true");
                                     duplicate = true;
@@ -297,10 +371,10 @@
                                         var tagName= input.val();
                                         console.log("randomTagId "+tagId);
                                         console.log(input.val());
-                                        var newTag = $(`<span class="tagValue" onclick="removeTag(${id},${tagId});" id = "${tagId}" value="${tagName}" style="width:200px;">${tagName}${x}</span>`);
-                                        console.log("Inserting Button");
+                                        var newTag = $(`<span class="tagValue" onclick="removeTag(${id},${tagId});" id = "${tagId}" value="${tagName}" style="width:max-content;">${tagName}${x}</span>`);
                                         newTag.insertBefore(input);
                                         input.remove();
+                                        console.log("Tag added Successfully: "+input.val());
 
                                     },
                                     error: function (jqXhr, textStatus, errorThrown) {
@@ -322,24 +396,39 @@
 
 
         function saveReceipt(){
-            console.log("save clicked");
+            image = null;
+            if (thumbnailFinal != null) {
+                    console.log("In save receipt: receipt created by snap");
+                    image = thumbnailFinal.toDataURL('image/png').split(',')[1];
+                }
+                /*
+            if (thumbnailFinal == null){
+                thumbnailFinal = document.createElement('canvas');
+                console.log("In save receipt: receipt not created by snap");
+                thumbnailFinal.getContext().clearRect(0,0,10,10);
+            }*/
+            destroyThumbnail();
+            thumbnailFinal = null;
             var data = {
                     merchant: $('#merchant').val(),
-                    amount: $('#amount').val()
+                    amount: $('#amount').val(),
+                    images: image
                 };
                 $.ajax({
                     url: api + "/receipts",
                     dataType: 'json',
                     type: 'POST',
+                    indexValue: {param1:thumbnailFinal},
                     contentType: 'application/json',
                     data: JSON.stringify(data),
                     success: function (receipt) {
-                        console.log('saving receipts');
-                        console.log(receipt);
+                        console.log('Receipt saved successfully: '+receipt);
                         updateReceipt(receipt);
+                        //updateReceipt(receipt,this.indexValue.param1);
                         $('#merchant').val('');
                         $('#amount').val('');
                         $('#receiptForm').hide();
+
                     },
                     error: function (jqXhr, textStatus, errorThrown) {
                         console.log(data);
@@ -351,11 +440,18 @@
 
         function cancelReceipt(){
             $("#receiptForm").hide();
+            $("#receiptList").show();
+            destroyThumbnail();
+            console.log('Receipt cancelled successfully.');
         }
 
         function loadReceiptForm(){
+            cancelPic();
+            $("#receiptList").show();
             $("#receiptForm").show();
+            console.log('Receipt form loaded successfully.');
         }
+
 
         function toggleFields(ele){
             if (ele.disabled == true){
@@ -371,74 +467,164 @@
             imageCapture.grabFrame()
                     .then(blob => createImageBitmap(blob))
                     .then(bitmapImage => {
-                        var canvas = document.createElement('canvas');
+                        const canvas = document.createElement('canvas');
                         canvas.width = bitmapImage.width;
                         canvas.height = bitmapImage.height;
                         canvas.getContext('2d').drawImage(bitmapImage, 0, 0);
-                        dataToSend = canvas.toDataURL('image/png');
+                        const dataToSend = canvas.toDataURL('image/png').split(',')[1];
                         var merchant = $('#merchant');
                         var amount = $('#amount');
                         loadReceiptForm();
                         console.log("True");
                         toggleFields(merchant);
                         toggleFields(amount);
-                        //merchantField.prop('disabled', true);
-                        //amountField.prop('disabled', true);
+                        const thumbnailCont = document.getElementById("thumbnail");
                         $.ajax({
                             url: api+'/images',
-                            dataType: 'json',
                             type: 'POST',
                             contentType: 'text/plain',
+                            indexValue: {param1:bitmapImage, param2:thumbnailCont},
                             data: dataToSend,
                             success: function (receipt) {
-                                console.log("Adding receipt from image");
-                                //merchantField.prop('disabled', false);
+                                console.log("Thumbnail received Successfully.");
                                 toggleFields(merchant);
                                 merchant.val(receipt.merchantName);
-                                //amountField.prop('disabled', false);
                                 toggleFields(amount);
                                 amount.val(receipt.amount);
+                                showThumbnail(receipt, this.indexValue.param1, this.indexValue.param2);// this.indexValue.param3
+                                copyThumbnail(receipt, this.indexValue.param1)  
                             },
                             error: function (jqXhr, textStatus, errorThrown) {
                                 console.log(errorThrown);
                                 toggleFields(merchant);
                                 toggleFields(amount);
-                                //merchantField.prop('disabled', false);
-                                //amountField.prop('disabled', false);
+                                $("#receiptForm").hide();
                             }
-                        });
+                        })
+                        .always(() => console.log('Request Complete.'));;
                     });
-
+                    //.then(response => {$('video').after(`<div>got response: <pre>${JSON.stringify(response)}</pre></div>`);})
         }
         
         function cancelPic(){
             $("#picture").hide();
             destroyCameraFeed();
+            $("#receiptList").show();
         }
 
         function loadPicture(){
+            console.log("Loading picture");
             $("#picture").show();
-            cameraStart();
+            $("#receiptForm").hide();
+            $("receiptList").hide();
+            console.log("Picture loaded")
+            startVideo();
+            
         }
 
-        function cameraStart(){
+        function attachMediaStream(mediaStream) {
+            $('video')[0].srcObject = mediaStream;
+            // Saving the track allows us to capture a photo
+            track = mediaStream.getVideoTracks()[0];
+            imageCapture = new ImageCapture(track);
+        }
+
+        function startVideo(){
             // To get rear camera
             // facingMode: "user" - for front camera
-            var constraints = { audio: false, video: { facingMode: { exact: "environment" } } 
-            navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
-                $('video')[0].srcObject = stream;
-                const track = stream.getVideoTracks()[0];
-                imageCapture = new ImageCapture(track);
-            }).catch(function(err) {
-                console.log("Unable to load video: "+ err.message)
-            });
+            //audio: false, 
+
+            //navigator.mediaDevices.getUserMedia({video: {facingMode: {exact: "environment"}}})
+            navigator.mediaDevices.getUserMedia({video: true})
+                .then(attachMediaStream)
+                .catch(error => {
+                    navigator.mediaDevices.getUserMedia({video: true})
+                        .then(attachMediaStream)
+                        .catch(error => {
+                            console.log('You are fooked! Error: '+error.message);
+                        })
+                })
         }
+
 
         function destroyCameraFeed(){
             $('video')[0].srcObject = null;
             imageCapture = null;
         }
+
+        function showThumbnail(receipt, bitmapImage, thumbnailCont) {//, thumbnail
+                $('#picture').hide();
+                $('#thumbnail').show();
+                console.info("Thumbnail dimensions returned: "+receipt.boundingBox);
+                boundingBox = receipt.boundingBox;
+                thumbnailCont.getContext('2d').clearRect(0, 0, thumbnailCont.width, thumbnailCont.height);
+                width = receipt.boundingBox[1]-receipt.boundingBox[0];
+                height = receipt.boundingBox[3]-receipt.boundingBox[2];
+                thumbnailCont.width = width;
+                thumbnailCont.height = height;
+                    //Clip the image and position the clipped part on the canvas - first four clipped image position n dimensions
+                thumbnailCont.getContext('2d').drawImage(bitmapImage,receipt.boundingBox[0],receipt.boundingBox[2],width, height,0,0,width,height);
+                tb = document.getElementById("thumbnail");
+                
+                var angle=0;
+                if(receipt.boundingBox[4] == 1){
+                    angle = 0*Math.PI/180;
+                
+                    // this will align your image in the upper left corner when rotating in 90deg increments
+                    //thumbnailCont.getContext('2d').translate(Math.abs(thumbnailCont.width/2 * Math.cos(angle) + thumbnailCont.height/2 * Math.sin(angle)), Math.abs(thumbnailCont.height/2 * Math.cos(angle) + thumbnailCont.width/2 * Math.sin(angle)));
+                    //thumbnailCont.getContext('2d').rotate(angle);
+                    //thumbnailCont.getContext('2d').translate(-thumbnailCont.width/2, -thumbnailCont.height/2);
+                    //thumbnailCont.getContext('2d').drawImage(tb, 0, 0);
+                }
+                else if(receipt.boundingBox[4] == 2){
+                    angle = 90*Math.PI/180;
+                   
+                    thumbnailCont.getContext('2d').translate(Math.abs(thumbnailCont.width/2 * Math.cos(angle) + thumbnailCont.height/2 * Math.sin(angle)), Math.abs(thumbnailCont.height/2 * Math.cos(angle) + thumbnailCont.width/2 * Math.sin(angle)));
+                    thumbnailCont.getContext('2d').rotate(angle);
+                    thumbnailCont.getContext('2d').translate(-thumbnailCont.width/2, -thumbnailCont.height/2);
+                    thumbnailCont.getContext('2d').drawImage(tb, 0, 0);
+                }
+                else if(receipt.boundingBox[4] == 3){
+                    angle = 270*Math.PI/180;
+                    
+                    thumbnailCont.getContext('2d').translate(Math.abs(thumbnailCont.width/2 * Math.cos(angle) + thumbnailCont.height/2 * Math.sin(angle)), Math.abs(thumbnailCont.height/2 * Math.cos(angle) + thumbnailCont.width/2 * Math.sin(angle)));
+                    thumbnailCont.getContext('2d').rotate(angle);
+                    thumbnailCont.getContext('2d').translate(-thumbnailCont.width/2, -thumbnailCont.height/2);
+                    thumbnailCont.getContext('2d').drawImage(tb, 0, 0);
+                }
+                else if(receipt.boundingBox[4] == 4){
+                    angle = 180*Math.PI/180;
+                    
+                    thumbnailCont.getContext('2d').translate(Math.abs(thumbnailCont.width/2 * Math.cos(angle) + thumbnailCont.height/2 * Math.sin(angle)), Math.abs(thumbnailCont.height/2 * Math.cos(angle) + thumbnailCont.width/2 * Math.sin(angle)));
+                    thumbnailCont.getContext('2d').rotate(angle);
+                    thumbnailCont.getContext('2d').translate(-thumbnailCont.width/2, -thumbnailCont.height/2);
+                    thumbnailCont.getContext('2d').drawImage(tb, 0, 0);
+                }
+                
+
+            }
+
+        function copyThumbnail(receipt, bitmapImage){
+            console.log("Creating Thumbnail in row");
+            const thumbnailTemp = document.createElement('canvas');
+            thumbnailTemp.getContext('2d').clearRect(0, 0, thumbnailTemp.width, thumbnailTemp.height);
+            thumbnailTemp.width = document.getElementById("thumbnail").width;
+            thumbnailTemp.height = document.getElementById("thumbnail").height;
+            thumbnailTemp.getContext('2d').drawImage(document.getElementById("thumbnail"), 0, 0);
+            //Clip the image and position the clipped part on the canvas - first four clipped image position n dimensions
+            //thumbnailTemp.getContext('2d').drawImage(bitmapImage,receipt.boundingBox[0],receipt.boundingBox[2],receipt.boundingBox[1]-receipt.boundingBox[0],receipt.boundingBox[3]-receipt.boundingBox[2],0,0,receipt.boundingBox[1]-receipt.boundingBox[0],receipt.boundingBox[3]-receipt.boundingBox[2]);
+
+
+            //thumbnailFinal = thumbnailTemp;
+            thumbnailFinal=thumbnailTemp;
+        }
+
+        function destroyThumbnail(){
+            var thumbnailCont1 = document.getElementById("thumbnail");
+            thumbnailCont1.getContext('2d').clearRect(0, 0, thumbnailCont1.width, thumbnailCont1.height);
+        }
         
+
         
          
 
@@ -446,8 +632,9 @@
 </head>
 
 <body>
-<DIV id="container">
     <h1>My Receipts</h1>
+<div id="container">
+    
     <div id="add-receipt" onclick="loadReceiptForm()">+</div>
     <div id="start-camera" onclick="loadPicture()">camera</div>
     <div class="receiptForm" id="receiptForm">
@@ -455,15 +642,23 @@
         <input type = "text" placeholder="amount" id="amount">
         <div id="cancel-receipt" onclick="cancelReceipt()">Cancel</div>
         <div id="save-receipt" onclick="saveReceipt()">Save</div>
+        
     </div>
+    <canvas id="thumbnail" width="200" height="200"></canvas>
     <div class="picture" id="picture">
-        <div id="videoContainer" class="videoContainer"><video autoplay></video></div>
+        <!--<canvas id="thumbnail" width="5550" height="4000"></canvas>-->
+        <div id="vidwrap" class="videwrap"><video autoplay></video></div>
         <div id="take-pic-cancel" onclick="cancelPic()">Cancel</div>
         <div id="take-pic" onclick="savePic()">Snap</div>
     </div>
-    <div id="receiptList">
-    </div>
-</DIV>
+
+    <!--<div id="receiptList">
+    </div>-->
+    <table style="width:100%" id="receiptList" border="1">
+
+    </table>
+    
+</div>
 </body>
 
 </html>

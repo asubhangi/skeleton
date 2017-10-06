@@ -12,16 +12,18 @@ public class ReceiptResource {
     private String merchant;
     private BigDecimal amount;
     private List<String> tags;
+    private String images;
 
     public static ReceiptResource create(ReceiptsRecord receipt, List<String> tags) {
         ReceiptResource resource = null;
         if (receipt != null) {
             resource = new ReceiptResource();
             resource.id = receipt.getId();
-            resource.time = receipt.getUploaded() == null ? null : receipt.getUploaded().getTime();
+            resource.time = receipt.getUploaded() == null ? null : receipt.getUploaded().getTime(); //receipt.getUploaded().getTime()
             resource.merchant = receipt.getMerchant();
             resource.amount = receipt.getAmount();
             resource.tags = tags;
+            resource.images = receipt.getImages();
         }
         return resource;
     }
@@ -47,5 +49,9 @@ public class ReceiptResource {
 
     public List<String> getTags() {
         return tags;
+    }
+
+    public String getImages() {
+        return images;
     }
 }

@@ -12,10 +12,14 @@ package api;
  
      @JsonProperty
      public final BigDecimal amount;
+
+     @JsonProperty
+     public final int[] boundingBox;    
  
  
-     public ReceiptSuggestionResponse(String merchantName, BigDecimal amount) {
+     public ReceiptSuggestionResponse(String merchantName, BigDecimal amount, int[] boundingBox) {
          this.merchantName = merchantName;
          this.amount = amount;
+         this.boundingBox = boundingBox;
      }
  }

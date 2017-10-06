@@ -33,13 +33,20 @@ public class ReceiptController {
         ReceiptsRecord receipt = receipts.getReceipt(id);
         List<String> tagsList = tags.getTags(id);
         return ReceiptResource.create(receipt, tagsList);
+
     }
 
     @POST
     @Path("/receipts")
     public ReceiptResource createReceipt(@Valid @NotNull CreateReceiptRequest receipt) {
-        return ReceiptResource.create(receipts.insert(receipt.merchant, receipt.amount), null);//receipts.insert(receipt.merchant, receipt.amount);
+        if (receipt.images == null){
+            return ReceiptResource.create(receipts.insert(receipt.merchant, receipt.amount, null), null);//receipts.insert(receipt.merchant, receipt.amount);
+        }
+        else{
+            return ReceiptResource.create(receipts.insert(receipt.merchant, receipt.amount, receipt.images), null);//receipts.insert(receipt.merchant, receipt.amount);
     }
+        }
+        
 
     @GET
     @Path("/receipts")

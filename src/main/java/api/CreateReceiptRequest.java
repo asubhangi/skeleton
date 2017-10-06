@@ -21,4 +21,7 @@ public class CreateReceiptRequest {
     @NotNull
     @Min(0)
     public BigDecimal amount;
+
+
+    public String images;
 }

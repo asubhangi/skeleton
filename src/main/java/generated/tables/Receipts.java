@@ -9,7 +9,7 @@ import generated.Public;
 import generated.tables.records.ReceiptsRecord;
 
 import java.math.BigDecimal;
-import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 
@@ -36,7 +36,7 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Receipts extends TableImpl<ReceiptsRecord> {
 
-	private static final long serialVersionUID = 399889549;
+	private static final long serialVersionUID = -1906389404;
 
 	/**
 	 * The reference instance of <code>public.receipts</code>
@@ -59,7 +59,7 @@ public class Receipts extends TableImpl<ReceiptsRecord> {
 	/**
 	 * The column <code>public.receipts.uploaded</code>.
 	 */
-	public final TableField<ReceiptsRecord, Time> UPLOADED = createField("uploaded", org.jooq.impl.SQLDataType.TIME.defaulted(true), this, "");
+	public final TableField<ReceiptsRecord, Timestamp> UPLOADED = createField("uploaded", org.jooq.impl.SQLDataType.TIMESTAMP.defaulted(true), this, "");
 
 	/**
 	 * The column <code>public.receipts.merchant</code>.
@@ -70,6 +70,11 @@ public class Receipts extends TableImpl<ReceiptsRecord> {
 	 * The column <code>public.receipts.amount</code>.
 	 */
 	public final TableField<ReceiptsRecord, BigDecimal> AMOUNT = createField("amount", org.jooq.impl.SQLDataType.DECIMAL.precision(12, 2), this, "");
+
+	/**
+	 * The column <code>public.receipts.images</code>.
+	 */
+	public final TableField<ReceiptsRecord, String> IMAGES = createField("images", org.jooq.impl.SQLDataType.VARCHAR.length(2147483647), this, "");
 
 	/**
 	 * The column <code>public.receipts.receipt_type</code>.

@@ -31,10 +31,32 @@ public class ReceiptDao {
         
     }
 
+    public ReceiptsRecord insert(String merchantName, BigDecimal amount, String base64EncodedImage) {
+        return addReceipt(merchantName, amount, base64EncodedImage);
+        
+    }
+
     private ReceiptsRecord addReceipt(String merchantName, BigDecimal amount) {
         ReceiptsRecord receiptsRecord = dsl
                 .insertInto(RECEIPTS, RECEIPTS.MERCHANT, RECEIPTS.AMOUNT)
                 .values(merchantName, amount)
+                .returning()
+                .fetchOne();
+
+                /*.insertInto(RECEIPTS, RECEIPTS.MERCHANT, RECEIPTS.AMOUNT, RECEIPTS.UPLOADED)
+                .values(merchantName, amount, new Timestamp(System.currentTimeMillis()))
+                .returning()
+                .fetchOne();*/
+
+        checkState(receiptsRecord != null && receiptsRecord.getId() != null, "Insert failed");
+
+        return receiptsRecord;
+    }
+
+    private ReceiptsRecord addReceipt(String merchantName, BigDecimal amount, String base64EncodedImage) {
+        ReceiptsRecord receiptsRecord = dsl
+                .insertInto(RECEIPTS, RECEIPTS.MERCHANT, RECEIPTS.AMOUNT, RECEIPTS.IMAGES)
+                .values(merchantName, amount, base64EncodedImage)
                 .returning()
                 .fetchOne();
 

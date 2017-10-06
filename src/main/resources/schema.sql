@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   uploaded DATETIME DEFAULT CURRENT_TIME(),
   merchant VARCHAR(255),
   amount DECIMAL(12,2),
+  images LONGVARCHAR(MAX),
   receipt_type INT UNSIGNED,
 
   PRIMARY KEY (id)
@@ -17,7 +18,6 @@ CREATE TABLE IF NOT EXISTS tags (
   CONSTRAINT fk_receipt FOREIGN KEY (id) REFERENCES receipts (id)  
 
 );
-
 
 select * from receipts;
 select * from tags;
